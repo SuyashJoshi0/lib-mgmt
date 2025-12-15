@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.cts.LibraryManagementSystem.dto.BorrowRecordDTO;
+import com.cts.LibraryManagementSystem.dto.CatalogDTO;
 import com.cts.LibraryManagementSystem.model.BorrowRecordModel;
 import com.cts.LibraryManagementSystem.model.CatalogModel;
 import com.cts.LibraryManagementSystem.model.UsersModel;
@@ -39,20 +40,25 @@ public class BorrowServiceImpl implements BorrowService {
 				.orElseThrow(()-> new RuntimeException("User not found with ID: "+ borrowRecordDTO.getUserId()));
 	
 		CatalogModel book= catalogService.getBookById(borrowRecordDTO.getBookId())
-				.orElseThrow(()-> new RuntimeException("Book not foubnd with ID: "+ borrowRecordDTO.getBookId()));
+				.orElseThrow(()-> new RuntimeException("Book not foubnd with ID: "+ borrowRecordDTO.getBookId()));  //when borrowing the book
 		
-		if(book.getAvailabilityStatus() == 'N') {
-			throw new RuntimeException("Book is not available for borrowing.");
+		if(book.getStock() <= 0) {
+			throw new RuntimeException("Book is out of Stock");
 		}
+		
+		book.setStock(book.getStock() - 1);
+		if(book.getStock() == 0){
+			book.setAvailabilityStatus('N');
+		}
+
 		
 		BorrowRecordModel borrowRecord = new BorrowRecordModel();
 		borrowRecord.setUser(user);
 		borrowRecord.setBook(book);
-		borrowRecord.setBorrowDate(borrowRecordDTO.getBorrowDate());
+		borrowRecord.setBorrowDate(new Date(System.currentTimeMillis()));
 		borrowRecord.setDueDate(borrowRecordDTO.getDueDate());
 		borrowRecord.setReturnStatus(false);
 		
-		book.setAvailabilityStatus('N');
 		catalogService.updateAvailabilityStatus(book);
 		
 		return borrowRecordRepository.save(borrowRecord);
@@ -60,14 +66,19 @@ public class BorrowServiceImpl implements BorrowService {
 
 	
 	@Override
-	public BorrowRecordModel updateReturnStatus(int borrowId,BorrowRecordDTO borrowDTO) {
+	public BorrowRecordModel returnBook(int borrowId,BorrowRecordDTO borrowDTO) {
 		BorrowRecordModel borrowRecord =borrowRecordRepository.findById(borrowId)
 				.orElseThrow(() -> new RuntimeException("Borrow Record not Found with ID: "+ borrowId));
-		
-//		System.out.println(borrowRecord);
 		borrowRecord.setReturnStatus(borrowDTO.isReturnStatus());
+		CatalogModel book = borrowRecord.getBook();
+		book.setStock(book.getStock() + 1);
 		
-		return borrowRecordRepository.save(borrowRecord);
+		if(book.getStock() > 0) {
+			book.setAvailabilityStatus('Y');
+		}
+		catalogService.updateAvailabilityStatus(book);
+
+		return borrowRecordRepository.save(borrowRecord);		
 	}
 
 	@Override

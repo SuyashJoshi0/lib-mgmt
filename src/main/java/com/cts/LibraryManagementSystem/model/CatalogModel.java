@@ -17,6 +17,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Data
 @Entity
@@ -24,6 +25,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class CatalogModel  {
 	
 	@Id
@@ -36,9 +38,10 @@ public class CatalogModel  {
     private char availabilityStatus;
     private java.sql.Timestamp createdAt;
     private java.sql.Timestamp updatedAt;
+    private int stock;
     
     @JsonBackReference
-    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "book", cascade = {CascadeType.ALL, CascadeType.REMOVE})
     private List<BorrowRecordModel> borrowRecords;
  
 

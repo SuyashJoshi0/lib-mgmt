@@ -13,7 +13,7 @@ public interface CatalogService {
 
 	public List<CatalogModel> getAllBooks();
 	
-	CatalogModel addBook(CatalogDTO catalogDto);
+	List<CatalogModel> addBook(List<CatalogDTO> catalogDto);
 	
 	boolean deleteBookById(Integer bookId);
 	
@@ -26,6 +26,6 @@ public interface CatalogService {
 	CatalogModel updateBookById(int bookId, CatalogDTO catalogDTO);
 	
 	public void updateAvailabilityStatus(CatalogModel catalogModel);
-	
+
 	
 }

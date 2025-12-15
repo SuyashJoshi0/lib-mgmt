@@ -2,14 +2,17 @@ package com.cts.LibraryManagementSystem.service;
 
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.cts.LibraryManagementSystem.dto.CatalogDTO;
 import com.cts.LibraryManagementSystem.model.CatalogModel;
+import com.cts.LibraryManagementSystem.repository.BorrowRecordRepository;
 import com.cts.LibraryManagementSystem.repository.CatalogRepository;
 
 @Service
@@ -17,6 +20,9 @@ public class CatalogServiceImpl implements CatalogService {
 	
 	@Autowired
 	private CatalogRepository catalogRepo;
+	
+	@Autowired
+	private BorrowRecordRepository borrowRecordRepository;
 
 	@Override
 	public List<CatalogModel> getAllBooks() {
@@ -24,48 +30,51 @@ public class CatalogServiceImpl implements CatalogService {
 	}
 
 	@Override
-	public CatalogModel addBook(CatalogDTO addCatalogDTO) {
+	public List<CatalogModel> addBook(List<CatalogDTO> catalogDtoList) {
+		List<CatalogModel> savedBooks = new ArrayList<>();
 		
-		CatalogModel catalogModel = CatalogModel.builder()
-				.bookName(addCatalogDTO.getBookName())
-				.bookAuthor(addCatalogDTO.getBookAuthor())
-				.bookGenre(addCatalogDTO.getBookGenre())
-				.availabilityStatus(addCatalogDTO.getAvailabilityStatus())
-				.createdAt(new Timestamp(new Date(System.currentTimeMillis()).getTime()))
-				.updatedAt(new Timestamp(new Date(System.currentTimeMillis()).getTime()))
-				.build();
+		for(CatalogDTO catalog : catalogDtoList) {
+			CatalogModel catalogModel = CatalogModel.builder()
+					.bookName(catalog.getBookName())
+					.bookAuthor(catalog.getBookAuthor())
+					.bookGenre(catalog.getBookGenre())
+					.availabilityStatus(catalog.getAvailabilityStatus())
+					.createdAt(new Timestamp(new Date(System.currentTimeMillis()).getTime()))
+					.updatedAt(new Timestamp(new Date(System.currentTimeMillis()).getTime()))
+					.stock(catalog.getStock())
+					.build();
+			savedBooks.add(catalogModel);
+		}
 		
-		return catalogRepo.save(catalogModel);
+		return catalogRepo.saveAll(savedBooks);
 	}
-
+	
+	
 	@Override
+	@Transactional
 	public boolean deleteBookById(Integer bookId) {
-	       if (!catalogRepo.existsById(bookId)) {
-	            return false;
-	        }
-	        catalogRepo.deleteById(bookId);
+		CatalogModel book =catalogRepo.findById(bookId).orElseThrow(() -> new RuntimeException("Book not found"));
+			borrowRecordRepository.deleteByBook_BookId(book.getBookId());      
+		    catalogRepo.deleteById(bookId);
 	        return true;
 	}
 
 	@Override
 	public CatalogModel updateBookById(int bookId, CatalogDTO catalogDTO) {
 		CatalogModel catalogModel=catalogRepo.findById(bookId).orElseThrow(() -> new RuntimeException("Book not found"));
-		System.out.println(catalogModel);
 		
 		catalogModel.setBookName(catalogDTO.getBookName() != null ? catalogDTO.getBookName() : catalogModel.getBookName());
 	    catalogModel.setBookAuthor(catalogDTO.getBookAuthor() != null ? catalogDTO.getBookAuthor() : catalogModel.getBookAuthor());
 	    catalogModel.setBookGenre(catalogDTO.getBookGenre() != null ? catalogDTO.getBookGenre() : catalogModel.getBookGenre());
-	    catalogModel.setAvailabilityStatus(catalogDTO.getAvailabilityStatus());
+	    catalogModel.setAvailabilityStatus(getAvailabilityStatus(catalogDTO.getStock()));
 	    catalogModel.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
-		    
-		    System.out.println(catalogModel);
-
+		catalogModel.setStock(catalogDTO.getStock() > 0 ? catalogDTO.getStock() : catalogModel.getStock());
 		return catalogRepo.save(catalogModel);
 	}
 
 	@Override
 	public List<CatalogModel> getBooksByName(String bookName) {
-		return catalogRepo.findByBookName(bookName);
+		return catalogRepo.findByBookNameContainingIgnoreCase(bookName);
 	}
 
 	@Override
@@ -80,7 +89,12 @@ public class CatalogServiceImpl implements CatalogService {
 	
 	public void updateAvailabilityStatus(CatalogModel catalogModel) {
 		catalogRepo.save(catalogModel);
-		
 	}
+	
+	public char getAvailabilityStatus(int stock) {
+		return stock>0 ? 'Y' : 'N';
+	}
+	
+	
 
 }

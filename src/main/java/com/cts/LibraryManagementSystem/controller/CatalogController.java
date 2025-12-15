@@ -1,5 +1,6 @@
 package com.cts.LibraryManagementSystem.controller;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 
 
 @RestController
-@RequestMapping("/books")
+@RequestMapping("/api/books")
 public class CatalogController {
 	
 	@Autowired
@@ -33,9 +34,9 @@ public class CatalogController {
 	}
 	
 	@PostMapping
-	public ResponseEntity<CatalogModel> addBook(@RequestBody CatalogDTO catalogDto){
-		CatalogModel addedBook=catalogService.addBook(catalogDto);
-		return ResponseEntity.ok(addedBook);
+	public ResponseEntity<List<CatalogModel>> addBook(@RequestBody List<CatalogDTO> catalogDto){
+		List<CatalogModel> addedBooks=catalogService.addBook(catalogDto);
+		return ResponseEntity.ok(addedBooks);
 	}
 	
 	@DeleteMapping("/{bookId}")
@@ -45,11 +46,9 @@ public class CatalogController {
 			return ResponseEntity.ok("Book Deleted SuccessFully.");
 		}else {
 			return ResponseEntity.status(404).body("Book not found.");
-		}
-			
+		}		
 	}
 	
-
 	@GetMapping("/name/{bookName}")
 	public List<CatalogModel> getBookByName(@PathVariable String bookName){
 		return catalogService.getBooksByName(bookName);
